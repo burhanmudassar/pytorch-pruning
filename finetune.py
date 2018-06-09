@@ -267,16 +267,16 @@ class PrunningFineTuner_ResNet101:
 		torch.save(model, "model_prunned")
 
 def get_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--train", dest="train", action="store_true")
+	parser = argparse.ArgumentParser()
+	parser.add_argument("--train", dest="train", action="store_true")
 	parser.add_argument("--train_initial", dest="train_initial", action="store_true")
-    parser.add_argument("--prune", dest="prune", action="store_true")
-    parser.add_argument("--train_path", type = str, default = "train")
-    parser.add_argument("--test_path", type = str, default = "test")
-    parser.set_defaults(train=False)
-    parser.set_defaults(prune=False)
-    args = parser.parse_args()
-    return args
+	parser.add_argument("--prune", dest="prune", action="store_true")
+	parser.add_argument("--train_path", type = str, default = "train")
+	parser.add_argument("--test_path", type = str, default = "test")
+	parser.set_defaults(train=False)
+	parser.set_defaults(prune=False)
+	args = parser.parse_args()
+	return args
 
 if __name__ == '__main__':
 	args = get_args()
