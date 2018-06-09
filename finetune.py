@@ -17,7 +17,7 @@ from heapq import nsmallest
 import time
 
 class ModifiedResNet101Model(torch.nn.Module):
-	def __init__(self, num_classes=2):
+	def __init__(self, num_classes):
 		super(ModifiedResNet101Model, self).__init__()
 
 		model = resnet.ResNet101()
@@ -46,7 +46,7 @@ class ModifiedResNet101Model(torch.nn.Module):
 		self.features = [self.conv1, self.bn1, self.layer1, self.layer2, self.layer3, self.layer4]
 
 		# Create New Classifier
-		self.fc = nn.Linear(512 * 4, num_classes=num_classes)
+		self.fc = nn.Linear(512 * 4, num_classes)
 
 	def forward(self, x):
 		out = self.conv1(x)
@@ -164,6 +164,7 @@ class PrunningFineTuner_ResNet101:
 
 		for i, (batch, label) in enumerate(self.test_data_loader):
 			batch = batch.cuda()
+			label[label > 0] = 1
 			output = model(Variable(batch))
 			pred = output.data.max(1)[1]
 	 		correct += pred.cpu().eq(label).sum()
@@ -199,6 +200,7 @@ class PrunningFineTuner_ResNet101:
 
 	def train_epoch(self, optimizer = None, rank_filters = False):
 		for batch, label in self.train_data_loader:
+			label[label>0] = 1
 			self.train_batch(optimizer, batch.cuda(), label.cuda(), rank_filters)
 
 	def get_candidates_to_prune(self, num_filters_to_prune):
