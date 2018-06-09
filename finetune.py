@@ -15,11 +15,11 @@ from operator import itemgetter
 from heapq import nsmallest
 import time
 
-class ModifiedVGG16Model(torch.nn.Module):
+class ModifiedResNet101Model(torch.nn.Module):
 	def __init__(self):
 		super(ModifiedVGG16Model, self).__init__()
 
-		model = models.vgg16(pretrained=True)
+		model = models.resnet101(pretrained=True)
 		self.features = model.features
 
 		for param in self.features.parameters():
@@ -124,10 +124,11 @@ class FilterPrunner:
 
 		return filters_to_prune				
 
-class PrunningFineTuner_VGG16:
+class PrunningFineTuner_ResNet101:
 	def __init__(self, train_path, test_path, model):
-		self.train_data_loader = dataset.loader(train_path)
-		self.test_data_loader = dataset.test_loader(test_path)
+		# Insert CIFAR10 Loader
+		# self.train_data_loader = dataset.loader(train_path)
+		# self.test_data_loader = dataset.test_loader(test_path)
 
 		self.model = model
 		self.criterion = torch.nn.CrossEntropyLoss()
@@ -256,11 +257,11 @@ if __name__ == '__main__':
 	args = get_args()
 
 	if args.train:
-		model = ModifiedVGG16Model().cuda()
+		model = ModifiedResNet101Model().cuda()
 	elif args.prune:
 		model = torch.load("model").cuda()
 
-	fine_tuner = PrunningFineTuner_VGG16(args.train_path, args.test_path, model)
+	fine_tuner = PrunningFineTuner_ResNet101(args.train_path, args.test_path, model)
 
 	if args.train:
 		fine_tuner.train(epoches = 20)
