@@ -281,7 +281,9 @@ def get_args():
 if __name__ == '__main__':
 	args = get_args()
 
-	if args.train:
+	if args.train_initial:
+		model = ModifiedResNet101Model().cuda()
+	elif args.train:
 		model = ModifiedResNet101Model().cuda()
 	elif args.prune:
 		model = torch.load("model").cuda()
