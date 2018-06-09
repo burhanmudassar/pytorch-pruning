@@ -20,24 +20,58 @@ class ModifiedResNet101Model(torch.nn.Module):
 		super(ModifiedResNet101Model, self).__init__()
 
 		model = models.resnet101(pretrained=True)
-		self.features = model.features
+		self.conv1 = model.conv
+		self.bn1 = model.bn1
+		self.relu = model.relu
+		self.maxpool = model.maxpool
 
-		for param in self.features.parameters():
+		self.layer1 = model.layer1
+		self.layer2 = model.layer2
+		self.layer3 = model.layer3
+		self.layer4 = model.layer4
+
+		self.avgpool = model.avgpool
+
+		for param in self.conv1.parameters():
+			param.requires_grad = False
+		for param in self.bn1.parameters():
+			param.requires_grad = False
+		for param in self.relu.parameters():
+			param.requires_grad = False
+		for param in self.maxpool.parameters():
 			param.requires_grad = False
 
-		self.classifier = nn.Sequential(
-		    nn.Dropout(),
-		    nn.Linear(25088, 4096),
-		    nn.ReLU(inplace=True),
-		    nn.Dropout(),
-		    nn.Linear(4096, 4096),
-		    nn.ReLU(inplace=True),
-		    nn.Linear(4096, 2))
+		for param in self.layer1.parameters():
+			param.requires_grad = False
+		for param in self.layer2.parameters():
+			param.requires_grad = False
+		for param in self.layer3.parameters():
+			param.requires_grad = False
+		for param in self.layer4.parameters():
+			param.requires_grad = False
+
+		for param in self.avgpool.parameters():
+			param.requires_grad = False
+
+		self.features = [self.conv1, self.bn1, self.relu, self.maxpool, self.layer1, self.layer2, self.layer3, self.layer4, self.avgpool]
+
+		# Create New Classifier
+		self.fc = nn.Linear(512 * 4, 2)
 
 	def forward(self, x):
-		x = self.features(x)
+		x = self.conv1(x)
+		x = self.bn1(x)
+		x = self.relu(x)
+		x = self.maxpool(x)
+
+		x = self.layer1(x)
+		x = self.layer2(x)
+		x = self.layer3(x)
+		x = self.layer4(x)
+
+		x = self.avgpool(x)
 		x = x.view(x.size(0), -1)
-		x = self.classifier(x)
+		x = self.fc(x)
 		return x
 
 class FilterPrunner:
@@ -59,15 +93,16 @@ class FilterPrunner:
 		self.activation_to_layer = {}
 
 		activation_index = 0
-		for layer, (name, module) in enumerate(self.model.features._modules.items()):
-		    x = module(x)
-		    if isinstance(module, torch.nn.modules.conv.Conv2d):
-		    	x.register_hook(self.compute_rank)
-		        self.activations.append(x)
-		        self.activation_to_layer[activation_index] = layer
-		        activation_index += 1
+		for block in self.model.features:
+			for layer, (name, module) in enumerate(block._modules.items()):
+				x = module(x)
+				if isinstance(module, torch.nn.modules.conv.Conv2d):
+					x.register_hook(self.compute_rank)
+					self.activations.append(x)
+					self.activation_to_layer[activation_index] = layer
+					activation_index += 1
 
-		return self.model.classifier(x.view(x.size(0), -1))
+		return self.model.fc(x.view(x.size(0), -1))
 
 	def compute_rank(self, grad):
 		activation_index = len(self.activations) - self.grad_index - 1
@@ -154,7 +189,7 @@ class PrunningFineTuner_ResNet101:
 	def train(self, optimizer = None, epoches = 10):
 		if optimizer is None:
 			optimizer = \
-				optim.SGD(model.classifier.parameters(), 
+				optim.SGD(model.fc.parameters(),
 					lr=0.0001, momentum=0.9)
 
 		for i in range(epoches):
@@ -190,9 +225,10 @@ class PrunningFineTuner_ResNet101:
 		
 	def total_num_filters(self):
 		filters = 0
-		for name, module in self.model.features._modules.items():
-			if isinstance(module, torch.nn.modules.conv.Conv2d):
-				filters = filters + module.out_channels
+		for blocks in self.model.features:
+			for name, module in blocks._modules.items():
+				if isinstance(module, torch.nn.modules.conv.Conv2d):
+					filters = filters + module.out_channels
 		return filters
 
 	def prune(self):
@@ -202,8 +238,9 @@ class PrunningFineTuner_ResNet101:
 		self.model.train()
 
 		#Make sure all the layers are trainable
-		for param in self.model.features.parameters():
-			param.requires_grad = True
+		for blocks in self.model.features:
+			for param in blocks.parameters():
+				param.requires_grad = True
 
 		number_of_filters = self.total_num_filters()
 		num_filters_to_prune_per_iteration = 512
@@ -226,7 +263,7 @@ class PrunningFineTuner_ResNet101:
 			print "Prunning filters.. "
 			model = self.model.cpu()
 			for layer_index, filter_index in prune_targets:
-				model = prune_vgg16_conv_layer(model, layer_index, filter_index)
+				model = prune_resnet101_conv_layer(model, layer_index, filter_index)
 
 			self.model = model.cuda()
 

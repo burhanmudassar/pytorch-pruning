@@ -10,7 +10,7 @@ def replace_layers(model, i, indexes, layers):
 		return layers[indexes.index(i)]
 	return model[i]
 
-def prune_vgg16_conv_layer(model, layer_index, filter_index):
+def prune_resnet101_conv_layer(model, layer_index, filter_index):
 	_, conv = model.features._modules.items()[layer_index]
 	next_conv = None
 	offset = 1
