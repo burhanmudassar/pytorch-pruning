@@ -174,11 +174,11 @@ class PrunningFineTuner_ResNet101:
 	 	
 	 	self.model.train()
 
-	def train(self, optimizer = None, epoches = 10):
+	def train(self, optimizer = None, epoches = 10, learning_rate=0.0001):
 		if optimizer is None:
 			optimizer = \
 				optim.SGD(model.fc.parameters(),
-					lr=0.0001, momentum=0.9)
+					lr=learning_rate, momentum=0.9)
 
 		for i in range(epoches):
 			print "Epoch: ", i
@@ -270,6 +270,7 @@ class PrunningFineTuner_ResNet101:
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--train", dest="train", action="store_true")
+	parser.add_argument("--train_initial", dest="train_initial", action="store_true")
     parser.add_argument("--prune", dest="prune", action="store_true")
     parser.add_argument("--train_path", type = str, default = "train")
     parser.add_argument("--test_path", type = str, default = "test")
@@ -287,6 +288,14 @@ if __name__ == '__main__':
 		model = torch.load("model").cuda()
 
 	fine_tuner = PrunningFineTuner_ResNet101(args.train_path, args.test_path, model)
+
+	if args.train_initial:
+		fine_tuner.train(epoches = 150, learning_rate=0.1)
+		torch.save(model,"model")
+		fine_tuner.train(epoches=50, learning_rate=0.01)
+		torch.save(model,"model")
+		fine_tuner.train(epoches=50, learning_rate=0.001)
+		torch.save(model, "model")
 
 	if args.train:
 		fine_tuner.train(epoches = 20)
