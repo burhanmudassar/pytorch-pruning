@@ -6,9 +6,20 @@ from PIL import Image
 import glob
 import os
 
+mean = {
+    'cifar10': (0.4914, 0.4822, 0.4465)
+}
+
+std = {
+    'cifar10': (0.2023, 0.1994, 0.2010)
+}
+
 transform = transforms.Compose(
-    [transforms.ToTensor(),
-     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+    [
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize(mean['cifar10'], std['cifar10'])])
 
 def trainLoader(path):
     trainset = torchvision.datasets.CIFAR10(root=path, train=True,
