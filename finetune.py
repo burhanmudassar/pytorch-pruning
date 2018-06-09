@@ -20,7 +20,7 @@ class ModifiedResNet101Model(torch.nn.Module):
 		super(ModifiedResNet101Model, self).__init__()
 
 		model = models.resnet101(pretrained=True)
-		self.conv1 = model.conv
+		self.conv1 = model.conv1
 		self.bn1 = model.bn1
 		self.relu = model.relu
 		self.maxpool = model.maxpool
@@ -162,8 +162,8 @@ class FilterPrunner:
 class PrunningFineTuner_ResNet101:
 	def __init__(self, train_path, test_path, model):
 		# Insert CIFAR10 Loader
-		# self.train_data_loader = dataset.loader(train_path)
-		# self.test_data_loader = dataset.test_loader(test_path)
+		self.train_data_loader = dataset.trainLoader(train_path)
+		self.test_data_loader = dataset.testLoader(test_path)
 
 		self.model = model
 		self.criterion = torch.nn.CrossEntropyLoss()
