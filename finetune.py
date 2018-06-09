@@ -23,7 +23,6 @@ class ModifiedResNet101Model(torch.nn.Module):
 		model = resnet.ResNet101()
 		self.conv1 = model.conv1
 		self.bn1 = model.bn1
-		self.maxpool = model.maxpool
 
 		self.layer1 = model.layer1
 		self.layer2 = model.layer2
