@@ -17,7 +17,7 @@ import time
 
 class ModifiedResNet101Model(torch.nn.Module):
 	def __init__(self):
-		super(ModifiedVGG16Model, self).__init__()
+		super(ModifiedResNet101Model, self).__init__()
 
 		model = models.resnet101(pretrained=True)
 		self.features = model.features
