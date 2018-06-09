@@ -24,14 +24,16 @@ transform = transforms.Compose(
 def trainLoader(path):
     trainset = torchvision.datasets.CIFAR10(root=path, train=True,
                                             download=True, transform=transform)
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=32,
+    print trainset
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=128,
                                               shuffle=True, num_workers=4)
     return trainloader
 
 def testLoader(path):
     testset = torchvision.datasets.CIFAR10(root=path, train=False,
                                            download=True, transform=transform)
-    testloader = torch.utils.data.DataLoader(testset, batch_size=32,
+    # print testset
+    testloader = torch.utils.data.DataLoader(testset, batch_size=100,
                                              shuffle=False, num_workers=4)
     return testloader
 
