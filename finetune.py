@@ -20,7 +20,10 @@ class ModifiedResNet101Model(torch.nn.Module):
 	def __init__(self, num_classes, pretrained_model):
 		super(ModifiedResNet101Model, self).__init__()
 
-		model = resnet.ResNet101(pretrained_model)
+		model = resnet.ResNet101()
+		if pretrained_model:
+			checkpoint = torch.load(pretrained_model)
+			model.load_state_dict(checkpoint['net'])
 		self.conv1 = model.conv1
 		self.bn1 = model.bn1
 

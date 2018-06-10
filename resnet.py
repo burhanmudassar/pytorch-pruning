@@ -106,11 +106,11 @@ def ResNet34():
 def ResNet50():
     return ResNet(Bottleneck, [3,4,6,3])
 
-def ResNet101(pretrained):
+def ResNet101():
     model = ResNet(Bottleneck, [3,4,23,3])
-    if pretrained:
-        checkpoint = torch.load(pretrained)
-        model.load_state_dict(checkpoint['net'])
+    # if pretrained:
+    #     checkpoint = torch.load(pretrained)
+    #     model.load_state_dict(checkpoint['net'])
     return model
 
 def ResNet152():
