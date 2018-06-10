@@ -88,15 +88,30 @@ class FilterPrunner:
 		self.activation_to_layer = {}
 
 		activation_index = 0
-		for block in self.model.features:
-			for layer, (name, module) in enumerate(block._modules.items()):
-				x = module(x)
-				if isinstance(module, torch.nn.modules.conv.Conv2d):
-					x.register_hook(self.compute_rank)
-					self.activations.append(x)
-					self.activation_to_layer[activation_index] = layer
-					activation_index += 1
+		layer = 0
+		for blocks in self.model.features:
+			if blocks == self.conv1 or blocks == self.bn1:
+				print "Adding initial conv1 or bn1 to graph"
+				for name,module in blocks._modules.items():
+					x = module(x)
+					if isinstance(module, torch.nn.modules.conv.Conv2d):
+						x.register_hook(self.compute_rank)
+						self.activations.append(x)
+						self.activation_to_layer[activation_index] = layer
+						activation_index += 1
+						layer += 1
+			elif blocks == self.layer1 or blocks == self.layer2 or blocks == self.layer3 or blocks == self.layer4:
+				print "Adding Bottleneck to graph"
+				for (name, module) in blocks._modules.items():
+					x = module(x)
+					if isinstance(module, torch.nn.modules.conv.Conv2d):
+						x.register_hook(self.compute_rank)
+						self.activations.append(x)
+						self.activation_to_layer[activation_index] = layer
+						activation_index += 1
+						layer += 1
 
+		x = F.avgpool2d(x,4)
 		return self.model.fc(x.view(x.size(0), -1))
 
 	def compute_rank(self, grad):
