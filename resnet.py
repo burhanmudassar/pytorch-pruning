@@ -109,7 +109,8 @@ def ResNet50():
 def ResNet101(pretrained):
     model = ResNet(Bottleneck, [3,4,23,3])
     if pretrained:
-        model.load_state_dict(pretrained)
+        checkpoint = torch.load(pretrained)
+        model.load_state_dict(checkpoint['net'])
     return model
 
 def ResNet152():
