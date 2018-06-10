@@ -146,7 +146,7 @@ class FilterPrunner:
 		x = F.avg_pool2d(x,4)
 		#print activation_index
 		#print layer
-		return self.model.fc(x.view(x.size(0), -1))
+		return self.model.fc(x.view(x.size(0), -1)).cuda()
 
 	def compute_rank(self, grad):
 		activation_index = len(self.activations) - self.grad_index - 1
@@ -181,7 +181,9 @@ class FilterPrunner:
 	def normalize_ranks_per_layer(self):
 		for i in self.filter_ranks:
 			v = torch.abs(self.filter_ranks[i])
-			v = v / np.sqrt(torch.sum(v * v))
+			#print v
+			v = v / torch.sqrt(torch.sum(v * v))
+			#print v
 			self.filter_ranks[i] = v.cpu()
 
 	def get_prunning_plan(self, num_filters_to_prune):
