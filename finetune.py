@@ -89,37 +89,75 @@ class FilterPrunner:
 
 		activation_index = 0
 		layer = 0
-		for blocks in self.model.features:
-			if blocks == self.conv1 or blocks == self.bn1:
-				print "Adding initial conv1 or bn1 to graph"
-				for name,module in blocks._modules.items():
-					x = module(x)
-					if isinstance(module, torch.nn.modules.conv.Conv2d):
-						x.register_hook(self.compute_rank)
-						self.activations.append(x)
-						self.activation_to_layer[activation_index] = layer
-						activation_index += 1
-						layer += 1
-			elif blocks == self.layer1 or blocks == self.layer2 or blocks == self.layer3 or blocks == self.layer4:
-				print "Adding Bottleneck to graph"
-				for (name, module) in blocks._modules.items():
-					x = module(x)
-					if isinstance(module, torch.nn.modules.conv.Conv2d):
-						x.register_hook(self.compute_rank)
-						self.activations.append(x)
-						self.activation_to_layer[activation_index] = layer
-						activation_index += 1
-						layer += 1
+		for block in self.model.features:
+			if block == self.model.conv1 or block == self.model.bn1:
+				#print "Adding initial conv1 or bn1 to graph"
+				#print block
+				if block == self.model.conv1:
+					x = block(x)
+				else:
+					x = F.relu(block(x))
+				if isinstance(block, torch.nn.modules.conv.Conv2d):
+					x.register_hook(self.compute_rank)
+					self.activations.append(x)
+					self.activation_to_layer[activation_index] = layer
+					activation_index += 1
+					layer += 1
+			elif block == self.model.layer1 or block == self.model.layer2 or block == self.model.layer3 or block == self.model.layer4:
+				#print "Adding Residual Block to graph"
+				for (block_name, bottleneck) in block._modules.items():
+					#print block_name
+					for (name,module) in bottleneck._modules.items():
+						#print name,module
+						if isinstance(module, torch.nn.modules.Sequential):
+							#print "Sequential Block"
+							out += module(x)
+							x = F.relu(out)
+							#for (_,module_module) in module._modules.items():
+							#	print module_module
+							#	x += module_module(x)
+							#	if isinstance(module_module, torch.nn.modules.conv.Conv2d):
+							#		x.register_hook(self.compute_rank)
+							#		self.activations.append(x)
+							#		self.activation_to_layer[activation_index] = layer
+							#		activation_index += 1
+							#		layer += 1
+								
+						else:
+							#print "Conv or BN Inside Bottleneck"
+							#print name, module
+							if name == 'conv1':
+								out = module(x)
+							elif name == 'bn1' or name == 'bn2':
+								out =F.relu(module(out))
+							elif name == 'conv2' or name == 'conv3':
+								out = module(out)
+							elif name == 'bn3':
+								out = module(out)
+							else:
+								out = module(out)
+							if isinstance(module, torch.nn.modules.conv.Conv2d):
+								out.register_hook(self.compute_rank)
+								self.activations.append(out)
+								self.activation_to_layer[activation_index] = layer
+								activation_index += 1
+								layer += 1
 
-		x = F.avgpool2d(x,4)
+		x = F.avg_pool2d(x,4)
+		#print activation_index
+		#print layer
 		return self.model.fc(x.view(x.size(0), -1))
 
 	def compute_rank(self, grad):
 		activation_index = len(self.activations) - self.grad_index - 1
 		activation = self.activations[activation_index]
-		values = \
-			torch.sum((activation * grad), dim = 0).\
-				sum(dim=2).sum(dim=3)[0, :, 0, 0].data
+		#print activation_index
+		#print activation.shape
+		#print grad.shape
+		values = torch.sum((activation*grad),dim=0).sum(dim=1).sum(dim=1).data
+		#values = \
+		#	torch.sum((activation * grad), dim = 0).\
+		#		sum(dim=2).sum(dim=3)[0, :, 0, 0].data
 		
 		# Normalize the rank by the filter dimensions
 		values = \
@@ -240,7 +278,7 @@ class PrunningFineTuner_ResNet101:
 		for blocks in self.model.features:
 			for _, bottleneck_module in blocks._modules.items():
 				for name, module in bottleneck_module._modules.items():
-					print name, module
+					#print name, module
 					if isinstance(module, torch.nn.modules.conv.Conv2d):
 						filters = filters + module.out_channels
 		return filters
