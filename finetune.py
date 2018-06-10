@@ -1,7 +1,7 @@
 import torch
 from torch.autograd import Variable
 # from torchvision import models
-import resnet
+from resnet import *
 import cv2
 import sys
 import numpy as np
@@ -20,7 +20,7 @@ class ModifiedResNet101Model(torch.nn.Module):
 	def __init__(self, num_classes, pretrained_model):
 		super(ModifiedResNet101Model, self).__init__()
 
-		model = resnet.ResNet101()
+		model = ResNet101()
 		if pretrained_model:
 			checkpoint = torch.load(pretrained_model)
 			model.load_state_dict(checkpoint['net'])
