@@ -223,9 +223,11 @@ class PrunningFineTuner_ResNet101:
 	def total_num_filters(self):
 		filters = 0
 		for blocks in self.model.features:
-			for name, module in blocks._modules.items():
-				if isinstance(module, torch.nn.modules.conv.Conv2d):
-					filters = filters + module.out_channels
+			for _, bottleneck_module in blocks._modules.items():
+				for name, module in bottleneck_module._modules.items():
+					print name, module
+					if isinstance(module, torch.nn.modules.conv.Conv2d):
+						filters = filters + module.out_channels
 		return filters
 
 	def prune(self):
@@ -240,6 +242,7 @@ class PrunningFineTuner_ResNet101:
 				param.requires_grad = True
 
 		number_of_filters = self.total_num_filters()
+		print "Number of Filters {}".format(number_of_filters)
 		num_filters_to_prune_per_iteration = 512
 		iterations = int(float(number_of_filters) / num_filters_to_prune_per_iteration)
 
