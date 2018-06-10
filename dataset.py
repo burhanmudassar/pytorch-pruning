@@ -49,7 +49,7 @@ def trainLoader(path):
     trainset.train_data = train_data
 
     print trainset
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=128,
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=32,
                                               shuffle=True, num_workers=4)
     return trainloader
 

@@ -293,12 +293,16 @@ if __name__ == '__main__':
 	fine_tuner = PrunningFineTuner_ResNet101(args.train_path, args.test_path, model)
 
 	if args.train_initial:
-		fine_tuner.train(epoches = 150, learning_rate=0.1)
+		fine_tuner.train(epoches = 1, learning_rate=0.01)
 		torch.save(model,"model")
-		fine_tuner.train(epoches=50, learning_rate=0.01)
+		fine_tuner.train(epoches = 20, learning_rate=0.1)
 		torch.save(model,"model")
-		fine_tuner.train(epoches=50, learning_rate=0.001)
-		torch.save(model, "model")
+		fine_tuner.train(epoches = 300, learning_rate=0.001)
+		torch.save(model,"model")
+		#fine_tuner.train(epoches=50, learning_rate=0.01)
+		#torch.save(model,"model")
+		#fine_tuner.train(epoches=50, learning_rate=0.001)
+		#torch.save(model, "model")
 
 	if args.train:
 		fine_tuner.train(epoches = 20)
