@@ -103,3 +103,6 @@ ENV/
 *.pkl
 *.gz
 data/
+checkpoint/
+model
+backups/

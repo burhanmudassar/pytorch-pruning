@@ -9,6 +9,7 @@ import torchvision
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import torch.backends.cudnn as cudnn
 import dataset
 from prune import *
 import argparse
@@ -27,13 +28,14 @@ class ModifiedResNet101Model(torch.nn.Module):
 		if pretrained_model:
 			checkpoint = torch.load(pretrained_model)
 			model.load_state_dict(checkpoint['net'])
-		self.conv1 = model.conv1
-		self.bn1 = model.bn1
+		
+		self.conv1 = model.module.conv1
+		self.bn1 = model.module.bn1
 
-		self.layer1 = model.layer1
-		self.layer2 = model.layer2
-		self.layer3 = model.layer3
-		self.layer4 = model.layer4
+		self.layer1 = model.module.layer1
+		self.layer2 = model.module.layer2
+		self.layer3 = model.module.layer3
+		self.layer4 = model.module.layer4
 
 		for param in self.conv1.parameters():
 			param.requires_grad = False
@@ -293,7 +295,7 @@ if __name__ == '__main__':
 	if args.train_initial:
 		model = ModifiedResNet101Model(num_classes=2).cuda()
 	elif args.finetune:
-		model = ModifiedResNet101Model(num_classes=2, pretrained_model=args.ckpt_path)
+		model = ModifiedResNet101Model(num_classes=2, pretrained_model=args.ckpt_path).cuda()
 	elif args.prune:
 		model = torch.load("model").cuda()
 
