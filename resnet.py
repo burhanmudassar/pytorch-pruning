@@ -106,8 +106,11 @@ def ResNet34():
 def ResNet50():
     return ResNet(Bottleneck, [3,4,6,3])
 
-def ResNet101():
-    return ResNet(Bottleneck, [3,4,23,3])
+def ResNet101(pretrained):
+    model = ResNet(Bottleneck, [3,4,23,3])
+    if pretrained:
+        model.load_state_dict(pretrained)
+    return model
 
 def ResNet152():
     return ResNet(Bottleneck, [3,8,36,3])

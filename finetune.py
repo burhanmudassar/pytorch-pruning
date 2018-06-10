@@ -17,10 +17,10 @@ from heapq import nsmallest
 import time
 
 class ModifiedResNet101Model(torch.nn.Module):
-	def __init__(self, num_classes):
+	def __init__(self, num_classes, pretrained_model):
 		super(ModifiedResNet101Model, self).__init__()
 
-		model = resnet.ResNet101()
+		model = resnet.ResNet101(pretrained_model)
 		self.conv1 = model.conv1
 		self.bn1 = model.bn1
 
@@ -270,11 +270,12 @@ class PrunningFineTuner_ResNet101:
 
 def get_args():
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--train", dest="train", action="store_true")
+	parser.add_argument("--finetune", dest="finetune", action="store_true")
 	parser.add_argument("--train_initial", dest="train_initial", action="store_true")
 	parser.add_argument("--prune", dest="prune", action="store_true")
 	parser.add_argument("--train_path", type = str, default = "train")
 	parser.add_argument("--test_path", type = str, default = "test")
+	parser.add_argument("--ckpt_path", type = str, default = "model")
 	parser.set_defaults(train=False)
 	parser.set_defaults(prune=False)
 	args = parser.parse_args()
@@ -285,8 +286,8 @@ if __name__ == '__main__':
 
 	if args.train_initial:
 		model = ModifiedResNet101Model(num_classes=2).cuda()
-	elif args.train:
-		model = ModifiedResNet101Model(num_classes=2).cuda()
+	elif args.finetune:
+		model = ModifiedResNet101Model(num_classes=2, pretrained_model=args.ckpt_path).cuda()
 	elif args.prune:
 		model = torch.load("model").cuda()
 
@@ -295,16 +296,16 @@ if __name__ == '__main__':
 	if args.train_initial:
 		fine_tuner.train(epoches = 1, learning_rate=0.01)
 		torch.save(model,"model")
-		fine_tuner.train(epoches = 20, learning_rate=0.1)
-		torch.save(model,"model")
-		fine_tuner.train(epoches = 300, learning_rate=0.001)
-		torch.save(model,"model")
+		# fine_tuner.train(epoches = 20, learning_rate=0.1)
+		# torch.save(model,"model")
+		# fine_tuner.train(epoches = 300, learning_rate=0.001)
+		# torch.save(model,"model")
 		#fine_tuner.train(epoches=50, learning_rate=0.01)
 		#torch.save(model,"model")
 		#fine_tuner.train(epoches=50, learning_rate=0.001)
 		#torch.save(model, "model")
 
-	if args.train:
+	if args.finetune:
 		fine_tuner.train(epoches = 20)
 		torch.save(model, "model")
 
