@@ -21,6 +21,9 @@ class ModifiedResNet101Model(torch.nn.Module):
 		super(ModifiedResNet101Model, self).__init__()
 
 		model = ResNet101()
+		model = model.to('cuda')
+		model = torch.nn.DataParallel(model)
+		cudnn.benchmark = True
 		if pretrained_model:
 			checkpoint = torch.load(pretrained_model)
 			model.load_state_dict(checkpoint['net'])
@@ -290,7 +293,7 @@ if __name__ == '__main__':
 	if args.train_initial:
 		model = ModifiedResNet101Model(num_classes=2).cuda()
 	elif args.finetune:
-		model = ModifiedResNet101Model(num_classes=2, pretrained_model=args.ckpt_path).cuda()
+		model = ModifiedResNet101Model(num_classes=2, pretrained_model=args.ckpt_path)
 	elif args.prune:
 		model = torch.load("model").cuda()
 
