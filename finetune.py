@@ -324,6 +324,7 @@ class PrunningFineTuner_ResNet101:
 
 			message = str(100*float(self.total_num_filters()) / number_of_filters) + "%"
 			print "Filters prunned", str(message)
+			print self.model
 			self.test()
 			print "Fine tuning to recover from prunning iteration."
 			optimizer = optim.SGD(self.model.parameters(), lr=0.001, momentum=0.9)

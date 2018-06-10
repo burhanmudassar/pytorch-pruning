@@ -4,6 +4,7 @@ from torchvision import models
 import cv2
 import sys
 import numpy as np
+import pyjack
  
 def replace_layers(model, i, indexes, layers):
 	if i in indexes:
@@ -13,6 +14,7 @@ def replace_layers(model, i, indexes, layers):
 def prune_resnet101_conv_layer(model, layer_index, filter_index):
 	#layer_to_prune = []
 	#layers_affected = []
+	layer_affected = []
 	layer = 0
 	activation_index = 0
 	for block in model.features:
@@ -28,6 +30,13 @@ def prune_resnet101_conv_layer(model, layer_index, filter_index):
 			if isinstance(block, torch.nn.modules.conv.Conv2d):
 				if layer_index == layer:
 					layer_to_prune = block
+					print model.layer1
+					layer_affected.append(model.bn1)
+					for (bottleneck_name, bottleneck) in model.layer1._modules.items():
+						if bottleneck_name == '0':
+							for (layer_name, module) in bottleneck._modules.items():
+								if layer_name == 'conv1':
+									layer_affected.append(module)
 				activation_index += 1
 				layer += 1
 		elif block == model.layer1 or block == model.layer2 or block == model.layer3 or block == model.layer4:
@@ -37,7 +46,8 @@ def prune_resnet101_conv_layer(model, layer_index, filter_index):
 				for (name, module) in bottleneck._modules.items():
 					# print name,module
 					if isinstance(module, torch.nn.modules.Sequential):
-						print "Sequential Block"
+						pass
+						#print "Sequential Block"
 						#out += module(x)
 						#x = F.relu(out)
 					else:
@@ -64,14 +74,15 @@ def prune_resnet101_conv_layer(model, layer_index, filter_index):
 							#out = module(out)
 						if isinstance(module, torch.nn.modules.conv.Conv2d):
 							if layer_index == layer:
-								layer_to_prune = block
+								layer_to_prune = module
 							activation_index += 1
 							layer += 1
 
-	conv = block
+	conv = layer_to_prune
 	print "Pruning This Conv Block"
 	print conv
-	print block
+	print "Layers Affected"
+	print layer_affected
 	#next_conv = None
 	#offset = 1
 
@@ -98,22 +109,56 @@ def prune_resnet101_conv_layer(model, layer_index, filter_index):
 	new_weights[: filter_index, :, :, :] = old_weights[: filter_index, :, :, :]
 	new_weights[filter_index : , :, :, :] = old_weights[filter_index + 1 :, :, :, :]
 	new_conv.weight.data = torch.from_numpy(new_weights).cuda()
+	if conv.bias:
+		bias_numpy = conv.bias.data.cpu().numpy()
 
-	bias_numpy = conv.bias.data.cpu().numpy()
-
-	bias = np.zeros(shape = (bias_numpy.shape[0] - 1), dtype = np.float32)
-	bias[:filter_index] = bias_numpy[:filter_index]
-	bias[filter_index : ] = bias_numpy[filter_index + 1 :]
-	new_conv.bias.data = torch.from_numpy(bias).cuda()
+		bias = np.zeros(shape = (bias_numpy.shape[0] - 1), dtype = np.float32)
+		bias[:filter_index] = bias_numpy[:filter_index]
+		bias[filter_index : ] = bias_numpy[filter_index + 1 :]
+		new_conv.bias.data = torch.from_numpy(bias).cuda()
 
 	print "Adding new Conv"
 	print new_conv
+	
+	conv = pyjack.replace_all_refs(conv,new_conv)
 
-	block = new_conv
-	print block
-	print conv
-	del conv
-	print block
+	new_in_channels = new_conv.out_channels	
+
+	for layers in layer_affected:
+		if isinstance(layers, torch.nn.modules.conv.Conv2d):
+			new_layer = \
+				torch.nn.Conv2d(in_channels = new_in_channels, \
+				out_channels = layers.out_channels,
+				kernel_size = layers.kernel_size, \
+				stride = layers.stride,
+				padding = layers.padding,
+				dilation = layers.dilation,
+				groups = layers.groups,
+				bias = layers.bias)
+
+			old_weights = layers.weight.data.cpu().numpy()
+			new_weights = new_layer.weight.data.cpu().numpy()
+
+			new_weights[:, : filter_index, :, :] = old_weights[:, : filter_index, :, :]
+			new_weights[:, filter_index :, :, :] = old_weights[:, filter_index + 1 :, :, :]
+			new_layer.weight.data = torch.from_numpy(new_weights).cuda()
+			if layers.bias:
+				bias_numpy = layers.bias.data.cpu().numpy()
+				new_layer.bias.data = torch.from_numpy(bias_numpy).cuda()
+		if isinstance(layers, torch.nn.modules.batchnorm.BatchNorm2d):
+			new_layer = torch.nn.BatchNorm2d(new_in_channels)
+			old_weights = layers.weight.data.cpu().numpy()
+			
+
+		new_in_channels = new_layer.out_channels
+	
+	layers = pyjack.replace_all_refs(layers,new_layer)
+
+	new_in_channels = new_conv.out_channels	
+
+
+	#print "Conv1 New"
+	#print model.conv1
 
 	return model
 
